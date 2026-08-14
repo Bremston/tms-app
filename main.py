@@ -1,9 +1,17 @@
 import sys
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QHBoxLayout,
-    QListWidget, QStackedWidget, QLabel, QTableView, QHeaderView
+    QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
+    QListWidget, QStackedWidget, QLabel, QTableView, QHeaderView,
+    QPushButton, QDialog, QFormLayout, QLineEdit, QDialogButtonBox,
+    QMessageBox
 )
-from PySide6.QtCore import Qt, QAbstractTableModel
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
+from sample_data import (
+    ORDERS_DATA, ORDERS_HEADERS,
+    TRUCKS_DATA, TRUCKS_HEADERS,
+    DRIVERS_DATA, DRIVERS_HEADERS,
+)
+
 
 
 class TableModel(QAbstractTableModel):
@@ -25,6 +33,41 @@ class TableModel(QAbstractTableModel):
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
             return self.headers[section]
+
+    def add_row(self, row):
+        position = len(self._data)
+        self.beginInsertRows(QModelIndex(), position, position)
+        self._data.append(row)
+        self.endInsertRows()
+
+
+class AddOrderDialog(QDialog):
+    def __init__(self, headers, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle("New order")
+
+        layout = QFormLayout(self)
+        self.inputs = []
+
+        for header in headers:
+            field = QLineEdit()
+            layout.addRow(header, field)
+            self.inputs.append(field)
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    def get_data(self):
+        return [field.text() for field in self.inputs]
+
+    def accept(self):
+        if any(not field.text().strip() for field in self.inputs):
+            QMessageBox.warning(self, "Brak danych", "Wypełnij wszystkie pola.")
+            return 
+        super().accept()
 
 
 
@@ -51,32 +94,13 @@ class MainWindow(QMainWindow):
 
         # --- widok Zlecenia jako tabela ---
 
-        self.orders_view = self.create_table("orders", [
-            ["ZL/001", "Firma A", "Warszawa - Kraków", "W trakcie"],
-            ["ZL/002", "Firma B", "Poznań - Gdańsk", "Zaplanowane"],
-            ["ZL/003", "Firma C", "Wrocław - Łódź", "Zakończone"],
-        ], ["Order number", "Client", "Route", "Status"]
-        )
+        self.orders_view = self.create_table("orders", ORDERS_DATA, ORDERS_HEADERS)
 
-        self.trucks_view = self.create_table("trucks", [
-            ["PO 1234A", "Volvo", "FH16", "Marek Kowalski"],
-            ["WA 5678B", "Scania", "R450", "Anna Nowak"],
-            ["KR 9012C", "DAF", "XF 480", "Piotr Wiśniewski"],
-            ["GD 3456D", "Mercedes-Benz", "Actros 1845", "Tomasz Lewandowski"],
-            ["WR 7890E", "MAN", "TGX 18.500", "Katarzyna Dąbrowska"],
-            ["PO 2468F", "Iveco", "S-Way 480", "Michał Zieliński"],
-        ], ["Plate", "Make", "Model", "Driver"])
+        self.trucks_view = self.create_table("trucks", TRUCKS_DATA, TRUCKS_HEADERS)
 
-        self.drivers_view = self.create_table("drivers", [
-            ["Marek Kowalski", "PL/1234567/01", "601 234 567", "W trasie"],
-            ["Anna Nowak", "PL/2345678/02", "602 345 678", "Dostępny"],
-            ["Piotr Wiśniewski", "PL/3456789/03", "603 456 789", "W trasie"],
-            ["Tomasz Lewandowski", "PL/4567890/04", "604 567 890", "Urlop"],
-            ["Katarzyna Dąbrowska", "PL/5678901/05", "605 678 901", "Dostępny"],
-            ["Michał Zieliński", "PL/6789012/06", "606 789 012", "W trasie"],
-        ], ["Full name", "License number", "Phone number", "Status"])
+        self.drivers_view = self.create_table("drivers", DRIVERS_DATA, DRIVERS_HEADERS)
 
-
+        # dodajemy tabele do QStackedWidget
 
         self.views.addWidget(self.orders_view)
         self.views.addWidget(self.trucks_view)
@@ -95,7 +119,22 @@ class MainWindow(QMainWindow):
         view.setModel(model)
         view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.models[name] = model
-        return view
+
+        page = QWidget()
+        page_layout = QVBoxLayout(page)
+
+        button = QPushButton("Dodaj")
+        button.clicked.connect(lambda: self.add_record(name, headers))
+
+        page_layout.addWidget(button)
+        page_layout.addWidget(view)
+
+        return page
+
+    def add_record(self, name, headers):
+        dialog = AddOrderDialog(headers, self)
+        if dialog.exec():
+            self.models[name].add_row(dialog.get_data())
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
