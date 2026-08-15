@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         # sygnał -> slot: kliknięcie w menu przełącza widok
         self.menu.currentRowChanged.connect(self.views.setCurrentIndex)
 
-    # metoda tworząca tabelę i przypisująca model do słownika
+    # metoda tworząca tabelę, przypisująca model do słownika
     def create_table(self, name, data, headers):
         view = QTableView()
         model = TableModel(data, headers)
