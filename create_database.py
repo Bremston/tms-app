@@ -4,6 +4,14 @@ connection = sqlite3.connect("tms.db")
 cursor = connection.cursor()
 
 cursor.executescript("""
+DROP TABLE IF EXISTS stops;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS trucks;
+DROP TABLE IF EXISTS drivers;
+DROP TABLE IF EXISTS clients;
+""")
+
+cursor.executescript("""
 CREATE TABLE IF NOT EXISTS clients (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
@@ -41,19 +49,15 @@ CREATE TABLE IF NOT EXISTS stops (
     id INTEGER PRIMARY KEY,
     order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     stop_type TEXT NOT NULL CHECK (stop_type IN ('load', 'unload')),
-    address TEXT NOT NULL,
+    country_code TEXT NOT NULL,
+    postal_code TEXT NOT NULL,
+    city TEXT,
+    address TEXT,
     stop_date TEXT,
     sequence INTEGER NOT NULL DEFAULT 1
 );
 """)
 
-cursor.executescript("""
-DELETE FROM stops;
-DELETE FROM orders;
-DELETE FROM trucks;
-DELETE FROM drivers;
-DELETE FROM clients;
-""")
 
 cursor.executemany(
     "INSERT INTO drivers (full_name, license_number, phone) VALUES (?, ?, ?)",
@@ -92,10 +96,12 @@ cursor.execute("SELECT id FROM orders WHERE order_number = ?", ("ZL/001",))
 order_id = cursor.fetchone()[0]
 
 cursor.executemany(
-    "INSERT INTO stops (order_id, stop_type, address, stop_date, sequence) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO stops (order_id, stop_type, country_code, postal_code, city, address, stop_date, sequence) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     [
-        (order_id, "load", "Warszawa, Kolejowa 12", "2026-08-18", 1),
-        (order_id, "unload", "Kraków, Wielicka 5", "2026-08-19", 1),
+    (order_id, "load", "NL", "3011", "Rotterdam", "Waalhaven 320", "2026-08-18", 1),
+    (order_id, "load", "BE", "2000", "Antwerpen", "Noorderlaan 45", "2026-08-18", 2),
+    (order_id, "unload", "PL", "50-001", "Wrocław", None, "2026-08-21", 1),
+    (order_id, "unload", "PL", "31-001", "Kraków", None, "2026-08-21", 2),
     ]
 )
 

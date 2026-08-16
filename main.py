@@ -6,12 +6,11 @@ from PySide6.QtWidgets import (
     QMessageBox
 )
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
-from sample_data import (
-    ORDERS_DATA, ORDERS_HEADERS,
-    TRUCKS_DATA, TRUCKS_HEADERS,
-    DRIVERS_DATA, DRIVERS_HEADERS,
-)
 
+from database import (
+    ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS,
+    get_orders, get_trucks, get_drivers,
+)
 
 
 class TableModel(QAbstractTableModel):
@@ -84,7 +83,7 @@ class MainWindow(QMainWindow):
 
         # boczne menu
         self.menu = QListWidget()
-        self.menu.addItems(["Orders", "Trucks", "Drivers"])
+        self.menu.addItems(["Zlecenia", "Pojazdy", "Kierowcy"])
         self.menu.setFixedWidth(150)
 
         # obszar z widokami
@@ -94,11 +93,11 @@ class MainWindow(QMainWindow):
 
         # --- widok Zlecenia jako tabela ---
 
-        self.orders_view = self.create_table("orders", ORDERS_DATA, ORDERS_HEADERS)
+        self.orders_view = self.create_table("orders", get_orders(), ORDERS_HEADERS)
 
-        self.trucks_view = self.create_table("trucks", TRUCKS_DATA, TRUCKS_HEADERS)
+        self.trucks_view = self.create_table("trucks", get_trucks(), TRUCKS_HEADERS)
 
-        self.drivers_view = self.create_table("drivers", DRIVERS_DATA, DRIVERS_HEADERS)
+        self.drivers_view = self.create_table("drivers", get_drivers(), DRIVERS_HEADERS)
 
         # dodajemy tabele do QStackedWidget
 
@@ -117,7 +116,7 @@ class MainWindow(QMainWindow):
         view = QTableView()
         model = TableModel(data, headers)
         view.setModel(model)
-        view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        view.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
         self.models[name] = model
 
         page = QWidget()
