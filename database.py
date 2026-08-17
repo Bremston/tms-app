@@ -46,4 +46,25 @@ def get_orders():
     connection.close()
     return [list(row) for row in rows]
 
-print(get_orders())
+def add_driver(full_name, license_number, phone):
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+    cursor.execute(
+            "INSERT INTO drivers (full_name, license_number, phone) VALUES (?, ?, ?)",
+            (full_name, license_number, phone))
+  
+    driver_id = cursor.lastrowid
+    connection.commit()
+    connection.close()
+    return driver_id
+
+def add_truck(plate_number, make, vehicle_model):
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+    cursor.execute(
+            "INSERT INTO trucks (plate_number, make, vehicle_model) VALUES (?, ?, ?)",
+                        (plate_number, make, vehicle_model))
+    driver_id = cursor.lastrowid
+    connection.commit()
+    connection.close()
+    return driver_id

@@ -1,4 +1,5 @@
 import sys
+import sqlite3
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QListWidget, QStackedWidget, QLabel, QTableView, QHeaderView,
@@ -10,6 +11,7 @@ from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
 from database import (
     ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS,
     get_orders, get_trucks, get_drivers,
+    add_driver, add_truck,
 )
 
 
@@ -90,6 +92,7 @@ class MainWindow(QMainWindow):
         self.views = QStackedWidget()
 
         self.models = {}
+        self.db_savers = {"drivers" : add_driver, "trucks" : add_truck}
 
         # --- widok Zlecenia jako tabela ---
 
@@ -133,7 +136,18 @@ class MainWindow(QMainWindow):
     def add_record(self, name, headers):
         dialog = AddOrderDialog(headers, self)
         if dialog.exec():
-            self.models[name].add_row(dialog.get_data())
+                dialog_data = dialog.get_data()
+                try:
+                    self.db_savers[name](*dialog_data)
+                    self.models[name].add_row(dialog_data)
+                except sqlite3.IntegrityError as e:
+                    print(str(e))
+                
+            
+            
+
+
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
