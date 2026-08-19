@@ -4,14 +4,15 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QListWidget, QStackedWidget, QLabel, QTableView, QHeaderView,
     QPushButton, QDialog, QFormLayout, QLineEdit, QDialogButtonBox,
-    QMessageBox
+    QMessageBox, QComboBox
 )
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
 
 from database import (
     ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS, CLIENTS_HEADERS,
     get_orders, get_trucks, get_drivers, get_clients,
-    add_driver, add_truck, add_client
+    add_driver, add_truck, add_client,
+    get_clients_for_combo, get_drivers_for_combo, get_trucks_for_combo
 )
 
 
@@ -42,10 +43,10 @@ class TableModel(QAbstractTableModel):
         self.endInsertRows()
 
 
-class AddOrderDialog(QDialog):
+class AddRecordDialog(QDialog):
     def __init__(self, headers, parent = None):
         super().__init__(parent)
-        self.setWindowTitle("New order")
+        self.setWindowTitle("New record")
 
         layout = QFormLayout(self)
         self.inputs = []
@@ -69,6 +70,53 @@ class AddOrderDialog(QDialog):
             QMessageBox.warning(self, "Brak danych", "Wypełnij wszystkie pola.")
             return 
         super().accept()
+
+class AddOrderDialog(QDialog):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle("New order")
+
+        layout = QFormLayout(self)
+
+        self.order_number = QLineEdit()
+        self.rate = QLineEdit()
+        self.status = QLineEdit()
+        self.client = QComboBox()
+        self.driver = QComboBox()
+        self.truck = QComboBox()
+
+        layout.addRow("Numer zlecenia", self.order_number)
+        layout.addRow("Stawka", self.rate)
+        layout.addRow("Status", self.status)
+        layout.addRow("Klient", self.client)
+        layout.addRow("Kierowca", self.driver)
+        layout.addRow("Auto", self.truck)
+
+        for client_id, name in get_clients_for_combo():
+            self.client.addItem(name, client_id)
+
+        for truck_id, plate_number in get_trucks_for_combo():
+            self.truck.addItem(plate_number, truck_id)
+
+        for driver_id, full_name in get_drivers_for_combo():
+            self.driver.addItem(full_name, driver_id)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)        
+
+    def get_data(self):
+        return {
+            "order_number": self.order_number.text(),
+            "client_id": self.client.currentData(),
+            "driver_id": self.driver.currentData(),
+            "truck_id": self.truck.currentData(),
+            "rate": self.rate.text(),
+            "status": self.status.text(),
+        }
+
 
 
 
@@ -137,7 +185,7 @@ class MainWindow(QMainWindow):
         return page
 
     def add_record(self, name, headers):
-        dialog = AddOrderDialog(headers, self)
+        dialog = AddRecordDialog(self, headers)
         if dialog.exec():
                 dialog_data = dialog.get_data()
                 try:
@@ -145,6 +193,13 @@ class MainWindow(QMainWindow):
                     self.models[name].add_row(dialog_data)
                 except sqlite3.IntegrityError as e:
                     print(str(e))
+    # def add_oder(self, name):
+    #     dialog = AddOrderDialog(self)
+    #     if dialog.exec():
+    #         dialog_data = dialog.get_data()
+    #         try:
+    #             self.db_savers
+
                 
 
 

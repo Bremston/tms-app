@@ -21,12 +21,15 @@ def get_db_data(query):
 
 def get_drivers():
     return get_db_data("SELECT full_name, license_number, phone FROM drivers")
-    
 
+def get_drivers_for_combo():
+    return get_db_data("SELECT id, full_name FROM drivers")
 
 def get_trucks():
     return get_db_data("SELECT plate_number, make, vehicle_model FROM trucks")
 
+def get_trucks_for_combo():
+    return get_db_data("SELECT id, plate_number FROM trucks")
 
 def get_orders():
     return get_db_data("""
@@ -48,6 +51,8 @@ def get_orders():
 def get_clients():
     return get_db_data("SELECT name, tax_id, address FROM clients")
 
+def get_clients_for_combo():
+    return get_db_data("SELECT id, name FROM clients")
 
 def add_driver(full_name, license_number, phone):
     connection = sqlite3.connect(DB_PATH)
@@ -82,3 +87,14 @@ def add_client(name, tax_id, address):
     connection.commit()
     connection.close()
     return client_id
+
+def add_order(data):
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+    cursor.execute(
+            "INSERT INTO orders (order_number, client_id, driver_id, truck_id, rate, status) VALUES (?, ?, ?, ?, ?, ?)",
+                        (data['order_number'], data['client_id'], data['driver_id'], data['truck_id'], float(data['rate']), data['status']))
+    order_id = cursor.lastrowid
+    connection.commit()
+    connection.close()
+    return order_id
