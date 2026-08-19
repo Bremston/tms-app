@@ -9,9 +9,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
 
 from database import (
-    ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS,
-    get_orders, get_trucks, get_drivers,
-    add_driver, add_truck,
+    ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS, CLIENTS_HEADERS,
+    get_orders, get_trucks, get_drivers, get_clients,
+    add_driver, add_truck, add_client
 )
 
 
@@ -85,14 +85,14 @@ class MainWindow(QMainWindow):
 
         # boczne menu
         self.menu = QListWidget()
-        self.menu.addItems(["Zlecenia", "Pojazdy", "Kierowcy"])
+        self.menu.addItems(["Zlecenia", "Pojazdy", "Kierowcy", "Klienci"])
         self.menu.setFixedWidth(150)
 
         # obszar z widokami
         self.views = QStackedWidget()
 
         self.models = {}
-        self.db_savers = {"drivers" : add_driver, "trucks" : add_truck}
+        self.db_savers = {"drivers" : add_driver, "trucks" : add_truck, "clients" : add_client}
 
         # --- widok Zlecenia jako tabela ---
 
@@ -102,11 +102,14 @@ class MainWindow(QMainWindow):
 
         self.drivers_view = self.create_table("drivers", get_drivers(), DRIVERS_HEADERS)
 
+        self.clients_view = self.create_table("clients", get_clients(), CLIENTS_HEADERS)
+
         # dodajemy tabele do QStackedWidget
 
         self.views.addWidget(self.orders_view)
         self.views.addWidget(self.trucks_view)
         self.views.addWidget(self.drivers_view)
+        self.views.addWidget(self.clients_view)
 
         layout.addWidget(self.menu)
         layout.addWidget(self.views)
@@ -119,7 +122,7 @@ class MainWindow(QMainWindow):
         view = QTableView()
         model = TableModel(data, headers)
         view.setModel(model)
-        view.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
+        view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.models[name] = model
 
         page = QWidget()
@@ -143,10 +146,6 @@ class MainWindow(QMainWindow):
                 except sqlite3.IntegrityError as e:
                     print(str(e))
                 
-            
-            
-
-
 
 
 if __name__ == "__main__":
