@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
 from database import (
     ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS, CLIENTS_HEADERS,
     get_orders, get_trucks, get_drivers, get_clients,
-    add_driver, add_truck, add_client,
+    add_driver, add_truck, add_client, add_order,
     get_clients_for_combo, get_drivers_for_combo, get_trucks_for_combo
 )
 
@@ -42,6 +42,10 @@ class TableModel(QAbstractTableModel):
         self._data.append(row)
         self.endInsertRows()
 
+    def set_data(self, data):
+        self.beginResetModel()
+        self._data = data
+        self.endResetModel()
 
 class AddRecordDialog(QDialog):
     def __init__(self, headers, parent = None):
@@ -140,16 +144,13 @@ class MainWindow(QMainWindow):
         self.views = QStackedWidget()
 
         self.models = {}
-        self.db_savers = {"drivers" : add_driver, "trucks" : add_truck, "clients" : add_client}
+        self.db_savers = {"drivers" : add_driver, "trucks" : add_truck, "clients" : add_client, "orders" : add_order}
 
         # --- widok Zlecenia jako tabela ---
 
         self.orders_view = self.create_table("orders", get_orders(), ORDERS_HEADERS)
-
         self.trucks_view = self.create_table("trucks", get_trucks(), TRUCKS_HEADERS)
-
         self.drivers_view = self.create_table("drivers", get_drivers(), DRIVERS_HEADERS)
-
         self.clients_view = self.create_table("clients", get_clients(), CLIENTS_HEADERS)
 
         # dodajemy tabele do QStackedWidget
@@ -177,7 +178,10 @@ class MainWindow(QMainWindow):
         page_layout = QVBoxLayout(page)
 
         button = QPushButton("Dodaj")
-        button.clicked.connect(lambda: self.add_record(name, headers))
+        if name == "orders":
+            button.clicked.connect(lambda: self.add_order(name))
+        else:
+            button.clicked.connect(lambda: self.add_record(name, headers))
 
         page_layout.addWidget(button)
         page_layout.addWidget(view)
@@ -185,20 +189,23 @@ class MainWindow(QMainWindow):
         return page
 
     def add_record(self, name, headers):
-        dialog = AddRecordDialog(self, headers)
+        dialog = AddRecordDialog(headers, self)
         if dialog.exec():
                 dialog_data = dialog.get_data()
                 try:
                     self.db_savers[name](*dialog_data)
                     self.models[name].add_row(dialog_data)
                 except sqlite3.IntegrityError as e:
-                    print(str(e))
-    # def add_oder(self, name):
-    #     dialog = AddOrderDialog(self)
-    #     if dialog.exec():
-    #         dialog_data = dialog.get_data()
-    #         try:
-    #             self.db_savers
+                    QMessageBox.warning(self, "Błąd zapisu", e)
+
+    def add_order(self, name):
+        dialog = AddOrderDialog(self)
+        if dialog.exec():
+            try:
+                self.db_savers[name](dialog.get_data())
+                self.models[name].set_data(get_orders())
+            except sqlite3.IntegrityError as e:
+                QMessageBox.warning(self, "Błąd zapisu", e)
 
                 
 

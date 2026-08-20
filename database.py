@@ -44,7 +44,7 @@ def get_orders():
             JOIN clients ON orders.client_id = clients.id
             JOIN drivers ON orders.driver_id = drivers.id
             JOIN trucks ON orders.truck_id = trucks.id
-            JOIN stops ON stops.order_id = orders.id
+            LEFT JOIN stops ON stops.order_id = orders.id
             GROUP BY orders.id
     """)
 
@@ -98,3 +98,5 @@ def add_order(data):
     connection.commit()
     connection.close()
     return order_id
+
+
