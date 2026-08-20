@@ -15,6 +15,7 @@ from database import (
     get_clients_for_combo, get_drivers_for_combo, get_trucks_for_combo
 )
 
+    #klasa tworząca model tabeli
 
 class TableModel(QAbstractTableModel):
     def __init__(self, data, headers):
@@ -86,7 +87,12 @@ class AddOrderDialog(QDialog):
 
         self.stops_layout = QVBoxLayout()
         self.stops = []
-        self.stops_layout.addWidget(QGroupBox)
+        self.country_code = QComboBox()
+        self.postal_code = QLineEdit()
+        self.address = QLineEdit()
+        self.stop_date = QLineEdit()
+        
+        
 
 
         stop_button_layout = QHBoxLayout()
@@ -125,6 +131,9 @@ class AddOrderDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
+        loading_button.clicked.connect(lambda: self.add_stop("load"))
+        unloading_button.clicked.connect(lambda: self.add_stop("unload"))
+
         main_layout.addLayout(order_layout)
         main_layout.addLayout(self.stops_layout)
         main_layout.addLayout(stop_button_layout)  
@@ -141,6 +150,35 @@ class AddOrderDialog(QDialog):
             "status": self.status.text(),
         }
 
+    def add_stop(self, stop_type):
+        box = QGroupBox("Załadunek 1")
+        box_layout = QFormLayout(box)
+        
+        country_code = QComboBox()
+        postal_code = QLineEdit()
+        city = QLineEdit()
+        address = QLineEdit()
+        stop_date = QLineEdit()
+        
+        country_code.addItems(["PL", "DE", "NL", "BE", "FR", "CZ", "SK", "AT", "IT", "ES"])
+
+        self.stops.append({
+            "stop_type" : stop_type,
+            "country_code" : country_code,
+            "postal_code" : postal_code,
+            "city" : city,
+            "address" : address,
+            "stop_date" : stop_date
+        })
+        box_layout.addRow("Kraj", country_code)
+        box_layout.addRow("Kod pocztowy", postal_code)
+        box_layout.addRow("Miasto", city)
+        box_layout.addRow("Adres", address)
+        box_layout.addRow("Data", stop_date)
+
+        self.stops_layout.addWidget(box)
+
+              
 
 
 

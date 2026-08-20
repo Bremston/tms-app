@@ -9,6 +9,7 @@ TRUCKS_HEADERS = ["Numer rejestracyjny", "Marka", "Model"]
 ORDERS_HEADERS = ["Numer zlecenia", "Klient", "Kierowca", "Pojazd", "Trasa", "Stawka", "Status"]
 
 CLIENTS_HEADERS = ["Nazwa firmy", "VAT EU", "Adres"]
+COUNTRY_CODES = ["PL", "DE", "NL", "BE", "FR", "CZ", "SK", "AT", "IT", "ES"]
 
 def get_db_data(query):
     connection = sqlite3.connect(DB_PATH)
