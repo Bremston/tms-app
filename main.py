@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QListWidget, QStackedWidget, QLabel, QTableView, QHeaderView,
     QPushButton, QDialog, QFormLayout, QLineEdit, QDialogButtonBox,
-    QMessageBox, QComboBox
+    QMessageBox, QComboBox, QGroupBox
 )
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
 
@@ -80,7 +80,22 @@ class AddOrderDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("New order")
 
-        layout = QFormLayout(self)
+        main_layout = QVBoxLayout(self)
+
+        order_layout = QFormLayout()
+
+        self.stops_layout = QVBoxLayout()
+        self.stops = []
+        self.stops_layout.addWidget(QGroupBox)
+
+
+        stop_button_layout = QHBoxLayout()
+        loading_button = QPushButton("Dodaj załadunek")
+        unloading_button = QPushButton("Dodaj rozładunek ")
+        stop_button_layout.addWidget(loading_button)
+        stop_button_layout.addWidget(unloading_button)
+
+
 
         self.order_number = QLineEdit()
         self.rate = QLineEdit()
@@ -89,12 +104,12 @@ class AddOrderDialog(QDialog):
         self.driver = QComboBox()
         self.truck = QComboBox()
 
-        layout.addRow("Numer zlecenia", self.order_number)
-        layout.addRow("Stawka", self.rate)
-        layout.addRow("Status", self.status)
-        layout.addRow("Klient", self.client)
-        layout.addRow("Kierowca", self.driver)
-        layout.addRow("Auto", self.truck)
+        order_layout.addRow("Numer zlecenia", self.order_number)
+        order_layout.addRow("Stawka", self.rate)
+        order_layout.addRow("Status", self.status)
+        order_layout.addRow("Klient", self.client)
+        order_layout.addRow("Kierowca", self.driver)
+        order_layout.addRow("Auto", self.truck)
 
         for client_id, name in get_clients_for_combo():
             self.client.addItem(name, client_id)
@@ -109,7 +124,12 @@ class AddOrderDialog(QDialog):
 
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
-        layout.addRow(buttons)        
+
+        main_layout.addLayout(order_layout)
+        main_layout.addLayout(self.stops_layout)
+        main_layout.addLayout(stop_button_layout)  
+        main_layout.addWidget(buttons)
+     
 
     def get_data(self):
         return {
