@@ -130,6 +130,9 @@ class AddOrderDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
+        self.add_stop("load")
+        self.add_stop("unload")
+
         main_layout.addLayout(order_layout)
         main_layout.addLayout(self.stops_layout)
         main_layout.addLayout(stop_button_layout)  
@@ -148,7 +151,11 @@ class AddOrderDialog(QDialog):
 
     def add_stop(self, stop_type):
 
-        title = "Załadunek" if stop_type == "load" else "Rozładunek"
+        same_type_count = len([s for s in self.stops if s["stop_type"] == stop_type])
+        
+        word = "Załadunek" if stop_type == "load" else "Rozładunek"
+        title = f"{word} {same_type_count + 1}"
+
         box = QGroupBox(title)
         box_layout = QFormLayout(box)
 
