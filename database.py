@@ -96,6 +96,25 @@ def add_order(data):
             "INSERT INTO orders (order_number, client_id, driver_id, truck_id, rate, status) VALUES (?, ?, ?, ?, ?, ?)",
                         (data['order_number'], data['client_id'], data['driver_id'], data['truck_id'], float(data['rate']), data['status']))
     order_id = cursor.lastrowid
+
+    stops_data = []
+    for stop in data["stops"]:
+        stops_data.append((
+            order_id,
+            stop["stop_type"],
+            stop["country_code"],
+            stop["postal_code"],
+            stop["city"],
+            stop["address"],
+            stop["stop_date"],
+            stop["sequence"]
+        ))
+
+    cursor.executemany(
+        "INSERT INTO stops (order_id, stop_type, country_code, postal_code, city, address, stop_date, sequence) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        stops_data
+    )
+    
     connection.commit()
     connection.close()
     return order_id

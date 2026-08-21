@@ -140,6 +140,21 @@ class AddOrderDialog(QDialog):
      
 
     def get_data(self):
+
+        result = []
+        counters = {"load" : 0, "unload" : 0}
+        for stop in self.stops:
+            counters[stop["stop_type"]] += 1
+            result.append({
+                "stop_type" : stop["stop_type"],
+                "sequence" : counters[stop["stop_type"]],
+                "country_code" : stop["country_code"].currentText(),
+                "postal_code" : stop["postal_code"].text(),
+                "city" : stop["city"].text(),
+                "address" : stop["address"].text(),
+                "stop_date" : stop["stop_date"].text()
+            })
+
         return {
             "order_number": self.order_number.text(),
             "client_id": self.client.currentData(),
@@ -147,8 +162,9 @@ class AddOrderDialog(QDialog):
             "truck_id": self.truck.currentData(),
             "rate": self.rate.text(),
             "status": self.status.text(),
+            "stops" : result
         }
-
+    
     def add_stop(self, stop_type):
 
         same_type_count = len([s for s in self.stops if s["stop_type"] == stop_type])
