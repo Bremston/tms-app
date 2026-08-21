@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QComboBox, QGroupBox
 )
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
+from PySide6.QtGui import QColor
 
 from database import (
     ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS, CLIENTS_HEADERS,
@@ -16,7 +17,12 @@ from database import (
     get_clients_for_combo, get_drivers_for_combo, get_trucks_for_combo,
 )
 
-
+STATUS_COLORS = {
+    "Nowe": "#E6F1FB",
+    "W trakcie": "#FAEEDA",
+    "Zakończone": "#E1F5EE",
+}
+STATUS_OPTIONS = list(STATUS_COLORS.keys())
 class TableModel(QAbstractTableModel):
     def __init__(self, data, headers):
         super().__init__()
@@ -32,6 +38,14 @@ class TableModel(QAbstractTableModel):
     def data(self, index, role):
         if role == Qt.DisplayRole:
             return self._data[index.row()][index.column()]
+        if role == Qt.BackgroundRole:
+            if "Status" in self.headers:
+                status_column = self.headers.index("Status")
+                if index.column() == status_column:
+                    status = self._data[index.row()][status_column]
+                    color = STATUS_COLORS.get(status)
+                    if color:
+                        return QColor(color)
 
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
@@ -103,11 +117,13 @@ class AddOrderDialog(QDialog):
 
         self.order_number = QLineEdit()
         self.rate = QLineEdit()
-        self.status = QLineEdit()
+        self.status = QComboBox()
         self.client = QComboBox()
         self.driver = QComboBox()
         self.truck = QComboBox()
-        
+
+        self.status.addItems(STATUS_OPTIONS)
+
 
         order_layout.addRow("Numer zlecenia", self.order_number)
         order_layout.addRow("Stawka", self.rate)
@@ -161,7 +177,7 @@ class AddOrderDialog(QDialog):
             "driver_id": self.driver.currentData(),
             "truck_id": self.truck.currentData(),
             "rate": self.rate.text(),
-            "status": self.status.text(),
+            "status": self.status.currentText(),
             "stops" : result
         }
     

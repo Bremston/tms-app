@@ -10,6 +10,12 @@ ORDERS_HEADERS = ["Numer zlecenia", "Klient", "Kierowca", "Pojazd", "Trasa", "St
 
 CLIENTS_HEADERS = ["Nazwa firmy", "VAT EU", "Adres"]
 COUNTRY_CODES = ["PL", "DE", "NL", "BE", "FR", "CZ", "SK", "AT", "IT", "ES"]
+STATUS_COLORS = {
+    "Nowe": "#E6F1FB",
+    "W trakcie": "#FAEEDA",
+    "Zakończone": "#E1F5EE",
+}
+STATUS_OPTIONS = list(STATUS_COLORS.keys())
 
 def get_db_data(query):
     connection = sqlite3.connect(DB_PATH)
