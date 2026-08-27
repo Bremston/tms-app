@@ -23,6 +23,12 @@ STATUS_COLORS = {
     "Zakończone": "#E1F5EE",
 }
 STATUS_OPTIONS = list(STATUS_COLORS.keys())
+STOP_TYPE_NAMES = {
+    "load": "Załadunek",
+    "unload": "Rozładunek",
+}
+
+
 class TableModel(QAbstractTableModel):
     def __init__(self, data, headers):
         super().__init__()
@@ -46,6 +52,7 @@ class TableModel(QAbstractTableModel):
                     color = STATUS_COLORS.get(status)
                     if color:
                         return QColor(color)
+        print(repr(self._data[index.row()][index.column()]))
 
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
@@ -176,7 +183,7 @@ class AddOrderDialog(QDialog):
             "client_id": self.client.currentData(),
             "driver_id": self.driver.currentData(),
             "truck_id": self.truck.currentData(),
-            "rate": self.rate.text(),
+            "rate": float(self.rate.text().replace(",",".")),
             "status": self.status.currentText(),
             "stops" : result
         }
@@ -216,6 +223,32 @@ class AddOrderDialog(QDialog):
         country_code.addItems(COUNTRY_CODES)
 
         self.stops_layout.addWidget(box)
+
+    def accept(self):
+        if not self.order_number.text().strip():
+            QMessageBox.warning(self, "Brak danych", "Wpisz numer zlecenia.")
+            return
+        try:
+            float(self.rate.text().replace(",", "."))
+        except ValueError:
+            QMessageBox.warning(self, "Błędna stawka", "Podaj stawkę jako liczbę.")
+            return
+        counters = {"load" : 0, "unload" : 0}
+        for stop in self.stops:
+            word = STOP_TYPE_NAMES[stop["stop_type"]]
+            counters[stop["stop_type"]] += 1
+            number = counters[stop['stop_type']]
+            if not stop["postal_code"].text().strip():
+                QMessageBox.warning(self, "Brak danych", f"{word} {number}: Brak kodu pocztowego")
+                return
+        if counters["load"] == 0:
+            QMessageBox.warning(self, "Brak danych", "Uzupełnij załadunek")
+            return
+        if counters["unload"] == 0:
+            QMessageBox.warning(self, "Brak danych", "Uzupełnij rozładunek")
+            return
+        super().accept()
+        
 
 
 class MainWindow(QMainWindow):
