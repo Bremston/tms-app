@@ -20,6 +20,7 @@ STATUS_OPTIONS = list(STATUS_COLORS.keys())
 def get_db_data(query):
     connection = sqlite3.connect(DB_PATH)
     cursor = connection.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON")
     cursor.execute(query)
     rows = cursor.fetchall()
     connection.close()
@@ -61,43 +62,31 @@ def get_clients():
 def get_clients_for_combo():
     return get_db_data("SELECT id, name FROM clients")
 
-def add_driver(full_name, license_number, phone):
+def save_db_data(query, params=()):
     connection = sqlite3.connect(DB_PATH)
     cursor = connection.cursor()
-    cursor.execute(
-            "INSERT INTO drivers (full_name, license_number, phone) VALUES (?, ?, ?)",
-            (full_name, license_number, phone))
-  
-    driver_id = cursor.lastrowid
+    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.execute(query, params)
+    row_id = cursor.lastrowid
     connection.commit()
     connection.close()
-    return driver_id
+    return row_id
+
+
+def add_driver(full_name, license_number, phone):
+    return save_db_data("INSERT INTO drivers (full_name, license_number, phone) VALUES (?, ?, ?)",(full_name, license_number, phone))
+
 
 def add_truck(plate_number, make, vehicle_model):
-    connection = sqlite3.connect(DB_PATH)
-    cursor = connection.cursor()
-    cursor.execute(
-            "INSERT INTO trucks (plate_number, make, vehicle_model) VALUES (?, ?, ?)",
-                        (plate_number, make, vehicle_model))
-    driver_id = cursor.lastrowid
-    connection.commit()
-    connection.close()
-    return driver_id
+    return save_db_data("INSERT INTO trucks (plate_number, make, vehicle_model) VALUES (?, ?, ?)", (plate_number, make, vehicle_model))
 
 def add_client(name, tax_id, address):
-    connection = sqlite3.connect(DB_PATH)
-    cursor = connection.cursor()
-    cursor.execute(
-            "INSERT INTO clients (name, tax_id, address) VALUES (?, ?, ?)",
-                        (name, tax_id, address))
-    client_id = cursor.lastrowid
-    connection.commit()
-    connection.close()
-    return client_id
+    return save_db_data("INSERT INTO clients (name, tax_id, address) VALUES (?, ?, ?)", (name, tax_id, address))
 
 def add_order(data):
     connection = sqlite3.connect(DB_PATH)
     cursor = connection.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON")
     cursor.execute(
             "INSERT INTO orders (order_number, client_id, driver_id, truck_id, rate, status) VALUES (?, ?, ?, ?, ?, ?)",
                         (data['order_number'], data['client_id'], data['driver_id'], data['truck_id'], float(data['rate']), data['status']))
@@ -124,5 +113,3 @@ def add_order(data):
     connection.commit()
     connection.close()
     return order_id
-
-
