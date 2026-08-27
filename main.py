@@ -4,9 +4,9 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QListWidget, QStackedWidget, QLabel, QTableView, QHeaderView,
     QPushButton, QDialog, QFormLayout, QLineEdit, QDialogButtonBox,
-    QMessageBox, QComboBox, QGroupBox
+    QMessageBox, QComboBox, QGroupBox, QDateEdit
 )
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, QDate
 from PySide6.QtGui import QColor
 
 from database import (
@@ -52,7 +52,6 @@ class TableModel(QAbstractTableModel):
                     color = STATUS_COLORS.get(status)
                     if color:
                         return QColor(color)
-        print(repr(self._data[index.row()][index.column()]))
 
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
@@ -175,7 +174,7 @@ class AddOrderDialog(QDialog):
                 "postal_code" : stop["postal_code"].text(),
                 "city" : stop["city"].text(),
                 "address" : stop["address"].text(),
-                "stop_date" : stop["stop_date"].text()
+                "stop_date" : stop["stop_date"].date().toString(Qt.ISODate)
             })
 
         return {
@@ -203,7 +202,7 @@ class AddOrderDialog(QDialog):
         postal_code = QLineEdit()
         city = QLineEdit()
         address = QLineEdit()
-        stop_date = QLineEdit()
+        stop_date = QDateEdit()
 
         self.stops.append({
             "stop_type" : stop_type,
@@ -221,6 +220,9 @@ class AddOrderDialog(QDialog):
         box_layout.addRow("Data", stop_date)
 
         country_code.addItems(COUNTRY_CODES)
+
+        stop_date.setCalendarPopup(True)
+        stop_date.setDate(QDate.currentDate())
 
         self.stops_layout.addWidget(box)
 
