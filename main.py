@@ -17,6 +17,7 @@ from database import (
     get_clients_for_combo, get_drivers_for_combo, get_trucks_for_combo,
     get_client, get_driver, get_truck,
     update_client, update_driver, update_truck,
+    delete_client, delete_driver, delete_truck,
 )
 
 STATUS_COLORS = {
@@ -280,6 +281,7 @@ class MainWindow(QMainWindow):
         self.db_getters = {"drivers": get_driver, "trucks": get_truck, "clients": get_client,}
         self.db_updaters = {"drivers": update_driver, "trucks": update_truck, "clients": update_client,}
         self.db_loaders = {"orders": get_orders, "drivers": get_drivers, "trucks": get_trucks, "clients": get_clients,}
+        self.db_deleters = {"drivers" : delete_driver, "trucks" : delete_truck, "clients" : delete_client}
         self.views_dict = {}
         # --- widok Zlecenia jako tabela ---
 
@@ -328,8 +330,12 @@ class MainWindow(QMainWindow):
         edit_button = QPushButton("Edytuj")
         edit_button.clicked.connect(lambda: self.edit_record(name, headers))
 
+        delete_button = QPushButton("Usuń")
+        delete_button.clicked.connect(lambda: self.delete_record(name))
+
         page_layout.addWidget(button)
         page_layout.addWidget(edit_button)
+        page_layout.addWidget(delete_button)
         page_layout.addWidget(view)
 
         view.setAlternatingRowColors(True)
@@ -342,7 +348,7 @@ class MainWindow(QMainWindow):
                 dialog_data = dialog.get_data()
                 try:
                     self.db_savers[name](*dialog_data)
-                    self.models[name].add_row(dialog_data)
+                    self.models[name].set_data(self.db_loaders[name]())
                 except sqlite3.IntegrityError as e:
                     QMessageBox.warning(self, "Błąd zapisu", str(e))
 
@@ -375,6 +381,22 @@ class MainWindow(QMainWindow):
                 self.models[name].set_data(self.db_loaders[name]()) 
             except sqlite3.IntegrityError as e:
                 QMessageBox.warning(self, "Błąd zapisu", str(e))
+
+    def delete_record(self, name):
+        index = self.views_dict[name].currentIndex()
+        if not index.isValid():
+            QMessageBox.information(self, "Brak zaznaczenia", "Zaznacz wiersz do usunięcia")
+            return
+        current_row = index.row()
+        current_row_id = self.models[name].get_row_id(current_row)
+        if QMessageBox.question(self, "Potwierdzenie", "Czy na pewno chcesz usunąć pozycję?") == QMessageBox.StandardButton.Yes:
+            try:
+                self.db_deleters[name](current_row_id)
+                self.models[name].set_data(self.db_loaders[name]()) 
+            except sqlite3.IntegrityError as e:
+                QMessageBox.warning(self, "Błąd zapisu", str(e))
+                
+
                 
 
 

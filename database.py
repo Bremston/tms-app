@@ -105,6 +105,16 @@ def update_truck(truck_id, plate_number, make, vehicle_model):
 def update_client(client_id, name, tax_id, address):
     return save_db_data("UPDATE clients SET name = ?, tax_id = ?, address = ? WHERE id = ?", (name, tax_id, address, client_id))
 
+def delete_driver(driver_id):
+    save_db_data("DELETE FROM drivers WHERE id = ?", (driver_id,))
+
+def delete_truck(truck_id):
+    save_db_data("DELETE FROM trucks WHERE id = ?", (truck_id,))
+
+def delete_client(client_id):
+    save_db_data("DELETE FROM clients WHERE id = ?", (client_id,))
+
+
 
 def add_order(data):
     connection = sqlite3.connect(DB_PATH)
