@@ -15,6 +15,8 @@ from database import (
     get_orders, get_trucks, get_drivers, get_clients,
     add_driver, add_truck, add_client, add_order,
     get_clients_for_combo, get_drivers_for_combo, get_trucks_for_combo,
+    get_client, get_driver, get_truck,
+    update_client, update_driver, update_truck,
 )
 
 STATUS_COLORS = {
@@ -68,8 +70,11 @@ class TableModel(QAbstractTableModel):
         self._data = data
         self.endResetModel()
 
+    def get_row_id(self, row):
+        return self._data[row][0]
+
 class AddRecordDialog(QDialog):
-    def __init__(self, headers, parent = None):
+    def __init__(self, headers, values = None, parent = None):
         super().__init__(parent)
         self.setWindowTitle("New record")
 
@@ -108,8 +113,6 @@ class AddOrderDialog(QDialog):
         self.stops_layout = QVBoxLayout()
         self.stops = []
         
-        
-
 
         stop_button_layout = QHBoxLayout()
         loading_button = QPushButton("Dodaj załadunek")
@@ -274,7 +277,10 @@ class MainWindow(QMainWindow):
 
         self.models = {}
         self.db_savers = {"drivers" : add_driver, "trucks" : add_truck, "clients" : add_client, "orders" : add_order}
-
+        self.db_getters = {"drivers": get_driver, "trucks": get_truck, "clients": get_client,}
+        self.db_updaters = {"drivers": update_driver, "trucks": update_truck, "clients": update_client,}
+        self.db_loaders = {"orders": get_orders, "drivers": get_drivers, "trucks": get_trucks, "clients": get_clients,}
+        self.views_dict = {}
         # --- widok Zlecenia jako tabela ---
 
         self.orders_view = self.create_table("orders", get_orders(), ORDERS_HEADERS)
@@ -300,8 +306,15 @@ class MainWindow(QMainWindow):
         view = QTableView()
         model = TableModel(data, headers)
         view.setModel(model)
-        view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        header = view.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+
+        view.setColumnHidden(0, True)
+
+        view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+
         self.models[name] = model
+        self.views_dict[name] = view
 
         page = QWidget()
         page_layout = QVBoxLayout(page)
@@ -312,21 +325,26 @@ class MainWindow(QMainWindow):
         else:
             button.clicked.connect(lambda: self.add_record(name, headers))
 
+        edit_button = QPushButton("Edytuj")
+        edit_button.clicked.connect(lambda: self.edit_record(name, headers))
+
         page_layout.addWidget(button)
+        page_layout.addWidget(edit_button)
         page_layout.addWidget(view)
+
         view.setAlternatingRowColors(True)
 
         return page
 
     def add_record(self, name, headers):
-        dialog = AddRecordDialog(headers, self)
+        dialog = AddRecordDialog(headers[1:], self)
         if dialog.exec():
                 dialog_data = dialog.get_data()
                 try:
                     self.db_savers[name](*dialog_data)
                     self.models[name].add_row(dialog_data)
                 except sqlite3.IntegrityError as e:
-                    QMessageBox.warning(self, "Błąd zapisu", e)
+                    QMessageBox.warning(self, "Błąd zapisu", str(e))
 
     def add_order(self, name):
         dialog = AddOrderDialog(self)
@@ -335,8 +353,28 @@ class MainWindow(QMainWindow):
                 self.db_savers[name](dialog.get_data())
                 self.models[name].set_data(get_orders())
             except sqlite3.IntegrityError as e:
-                QMessageBox.warning(self, "Błąd zapisu", e)
+                QMessageBox.warning(self, "Błąd zapisu", str(e))
 
+    def edit_record(self, name, headers):
+        index = self.views_dict[name].currentIndex()
+        if not index.isValid():
+            QMessageBox.information(self, "Brak zaznaczenia", "Zaznacz wiersz do edycji")
+            return
+        current_row = index.row()
+        current_row_id = self.models[name].get_row_id(current_row)
+
+        dialog = AddRecordDialog(headers[1:], self)
+        dialog.setWindowTitle("Edycja rekordu")
+        values = self.db_getters[name](current_row_id)
+        if values:
+            for field, value in zip(dialog.inputs, values):
+                field.setText(value)
+        if dialog.exec():
+            try:
+                self.db_updaters[name](current_row_id, *dialog.get_data())
+                self.models[name].set_data(self.db_loaders[name]()) 
+            except sqlite3.IntegrityError as e:
+                QMessageBox.warning(self, "Błąd zapisu", str(e))
                 
 
 
