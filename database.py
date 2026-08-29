@@ -182,3 +182,6 @@ def update_order(order_id, data):
     )
     connection.commit()
     connection.close()
+
+def delete_order(order_id):
+    save_db_data("DELETE FROM orders WHERE id = ?", (order_id,))

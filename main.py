@@ -17,7 +17,7 @@ from database import (
     get_clients_for_combo, get_drivers_for_combo, get_trucks_for_combo,
     get_client, get_driver, get_truck, get_order, get_stops_for_order,
     update_client, update_driver, update_truck, update_order,
-    delete_client, delete_driver, delete_truck,
+    delete_client, delete_driver, delete_truck, delete_order,
     
 )
 
@@ -283,7 +283,7 @@ class MainWindow(QMainWindow):
         self.db_getters = {"drivers": get_driver, "trucks": get_truck, "clients": get_client, "orders" : get_order}
         self.db_updaters = {"drivers": update_driver, "trucks": update_truck, "clients": update_client, "orders" : update_order,}
         self.db_loaders = {"orders": get_orders, "drivers": get_drivers, "trucks": get_trucks, "clients": get_clients,}
-        self.db_deleters = {"drivers" : delete_driver, "trucks" : delete_truck, "clients" : delete_client}
+        self.db_deleters = {"drivers" : delete_driver, "trucks" : delete_truck, "clients" : delete_client, "orders" : delete_order,}
         self.views_dict = {}
         # --- widok Zlecenia jako tabela ---
 
