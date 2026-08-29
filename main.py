@@ -112,7 +112,8 @@ class AddOrderDialog(QDialog):
 
         order_layout = QFormLayout()
 
-        self.stops_layout = QVBoxLayout()
+        self.loads_layout = QHBoxLayout()
+        self.unloads_layout = QHBoxLayout()
         self.stops = []
         
 
@@ -162,7 +163,8 @@ class AddOrderDialog(QDialog):
             self.add_stop("unload")
 
         main_layout.addLayout(order_layout)
-        main_layout.addLayout(self.stops_layout)
+        main_layout.addLayout(self.loads_layout)
+        main_layout.addLayout(self.unloads_layout)
         main_layout.addLayout(stop_button_layout)  
         main_layout.addWidget(buttons)
      
@@ -230,7 +232,10 @@ class AddOrderDialog(QDialog):
         stop_date.setCalendarPopup(True)
         stop_date.setDate(QDate.currentDate())
 
-        self.stops_layout.addWidget(box)
+        if stop_type == "load":
+            self.loads_layout.addWidget(box)
+        else:
+            self.unloads_layout.addWidget(box)
 
     def accept(self):
         if not self.order_number.text().strip():
