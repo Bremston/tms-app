@@ -54,7 +54,7 @@ def get_orders():
                    clients.name,
                    drivers.full_name,
                    trucks.plate_number,
-                   GROUP_CONCAT(stops.country_code || stops.postal_code, ' -> '),
+                   GROUP_CONCAT(stops.country_code || stops.postal_code, ' -> ' ORDER BY stops.stop_type, stops.sequence),
                    orders.rate,
                    orders.status
             FROM orders
@@ -146,3 +146,39 @@ def add_order(data):
     connection.commit()
     connection.close()
     return order_id
+
+def get_order(order_id):
+    rows = get_db_data("SELECT order_number, client_id, driver_id, truck_id, rate, status FROM orders WHERE id = ?", (order_id, ))
+    return rows[0] if rows else None
+
+def get_stops_for_order(order_id):
+    return get_db_data("SELECT stop_type, sequence, country_code, postal_code, city, address, stop_date FROM stops WHERE order_id = ? ORDER BY stop_type, sequence", (order_id, ))
+
+def update_order(order_id, data):
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.execute("UPDATE orders SET order_number = ?, client_id = ?, driver_id = ?, truck_id = ?, rate = ?, status = ? WHERE id = ?",
+                    (data['order_number'], data['client_id'], data['driver_id'], data['truck_id'], float(data['rate']), data['status'], order_id))
+    
+    cursor.execute("DELETE FROM stops WHERE order_id = ?", (order_id,))
+
+    stops_data = []
+    for stop in data["stops"]:
+        stops_data.append((
+            order_id,
+            stop["stop_type"],
+            stop["country_code"],
+            stop["postal_code"],
+            stop["city"],
+            stop["address"],
+            stop["stop_date"],
+            stop["sequence"]
+        ))   
+
+    cursor.executemany(
+        "INSERT INTO stops (order_id, stop_type, country_code, postal_code, city, address, stop_date, sequence) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        stops_data
+    )
+    connection.commit()
+    connection.close()

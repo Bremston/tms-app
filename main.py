@@ -15,9 +15,10 @@ from database import (
     get_orders, get_trucks, get_drivers, get_clients,
     add_driver, add_truck, add_client, add_order,
     get_clients_for_combo, get_drivers_for_combo, get_trucks_for_combo,
-    get_client, get_driver, get_truck,
-    update_client, update_driver, update_truck,
+    get_client, get_driver, get_truck, get_order, get_stops_for_order,
+    update_client, update_driver, update_truck, update_order,
     delete_client, delete_driver, delete_truck,
+    
 )
 
 STATUS_COLORS = {
@@ -103,7 +104,7 @@ class AddRecordDialog(QDialog):
         super().accept()
 
 class AddOrderDialog(QDialog):
-    def __init__(self, parent = None):
+    def __init__(self, parent = None, with_default_stops = True):
         super().__init__(parent)
         self.setWindowTitle("New order")
 
@@ -156,8 +157,9 @@ class AddOrderDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
-        self.add_stop("load")
-        self.add_stop("unload")
+        if with_default_stops:
+            self.add_stop("load")
+            self.add_stop("unload")
 
         main_layout.addLayout(order_layout)
         main_layout.addLayout(self.stops_layout)
@@ -278,8 +280,8 @@ class MainWindow(QMainWindow):
 
         self.models = {}
         self.db_savers = {"drivers" : add_driver, "trucks" : add_truck, "clients" : add_client, "orders" : add_order}
-        self.db_getters = {"drivers": get_driver, "trucks": get_truck, "clients": get_client,}
-        self.db_updaters = {"drivers": update_driver, "trucks": update_truck, "clients": update_client,}
+        self.db_getters = {"drivers": get_driver, "trucks": get_truck, "clients": get_client, "orders" : get_order}
+        self.db_updaters = {"drivers": update_driver, "trucks": update_truck, "clients": update_client, "orders" : update_order,}
         self.db_loaders = {"orders": get_orders, "drivers": get_drivers, "trucks": get_trucks, "clients": get_clients,}
         self.db_deleters = {"drivers" : delete_driver, "trucks" : delete_truck, "clients" : delete_client}
         self.views_dict = {}
@@ -328,7 +330,10 @@ class MainWindow(QMainWindow):
             button.clicked.connect(lambda: self.add_record(name, headers))
 
         edit_button = QPushButton("Edytuj")
-        edit_button.clicked.connect(lambda: self.edit_record(name, headers))
+        if name == "orders":
+            edit_button.clicked.connect(lambda: self.edit_order(name))
+        else:
+            edit_button.clicked.connect(lambda: self.edit_record(name, headers))
 
         delete_button = QPushButton("Usuń")
         delete_button.clicked.connect(lambda: self.delete_record(name))
@@ -395,8 +400,41 @@ class MainWindow(QMainWindow):
                 self.models[name].set_data(self.db_loaders[name]()) 
             except sqlite3.IntegrityError as e:
                 QMessageBox.warning(self, "Błąd zapisu", str(e))
-                
 
+    def edit_order(self, name):
+        index = self.views_dict[name].currentIndex()
+        if not index.isValid():
+            QMessageBox.information(self, "Brak zaznaczenia", "Zaznacz wiersz do edycji")
+            return
+        current_row = index.row()
+        order_id = self.models[name].get_row_id(current_row)
+        dialog = AddOrderDialog(self, with_default_stops=False)
+        dialog.setWindowTitle("Edycja zlecenia")
+        order_number, client_id, driver_id, truck_id, rate, status = self.db_getters["orders"](order_id)
+        dialog.order_number.setText(order_number)
+        dialog.rate.setText(str(rate))
+        dialog.status.setCurrentText(status)
+        dialog.client.setCurrentIndex(dialog.client.findData(client_id))
+        dialog.driver.setCurrentIndex(dialog.driver.findData(driver_id))
+        dialog.truck.setCurrentIndex(dialog.truck.findData(truck_id))
+
+        stops = get_stops_for_order(order_id)
+
+        for stop_type, _, country_code, postal_code, city, address, stop_date in stops:
+            dialog.add_stop(stop_type)
+            fields = dialog.stops[-1]
+            fields["country_code"].setCurrentText(country_code)
+            fields["postal_code"].setText(postal_code)
+            fields["city"].setText(city or "")
+            fields["address"].setText(address or "")
+            fields["stop_date"].setDate(QDate.fromString(stop_date, Qt.ISODate))
+
+        if dialog.exec():
+            try:
+                self.db_updaters[name](order_id, dialog.get_data())
+                self.models[name].set_data(self.db_loaders[name]())
+            except sqlite3.IntegrityError as e:
+                QMessageBox.warning(self, "Błąd zapisu", str(e))
                 
 
 
