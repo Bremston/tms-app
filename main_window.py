@@ -8,18 +8,9 @@ from PySide6.QtCore import Qt, QDate
 
 from models import TableModel
 from dialogs import AddOrderDialog, AddRecordDialog
+from config import TABLES
 
-
-from database import (
-    ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS, CLIENTS_HEADERS,
-    COUNTRY_CODES,
-    get_orders, get_trucks, get_drivers, get_clients,
-    add_driver, add_truck, add_client, add_order,
-    get_client, get_driver, get_truck, get_order, get_stops_for_order,
-    update_client, update_driver, update_truck, update_order,
-    delete_client, delete_driver, delete_truck, delete_order,
-    
-)
+from database import ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS, CLIENTS_HEADERS, get_stops_for_order
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -42,43 +33,13 @@ class MainWindow(QMainWindow):
 
         self.models = {}
         self.views_dict = {}
-        self.tables = {
-            "orders": {
-                "load": get_orders,
-                "get": get_order,
-                "save": add_order,
-                "update": update_order,
-                "delete": delete_order,
-            },
-            "trucks": {
-                "load": get_trucks,
-                "get": get_truck,
-                "save": add_truck,
-                "update": update_truck,
-                "delete": delete_truck,
-            },
-            "drivers": {
-                "load": get_drivers,
-                "get": get_driver,
-                "save": add_driver,
-                "update": update_driver,
-                "delete": delete_driver,
-            },
-            "clients": {
-                "load": get_clients,
-                "get": get_client,
-                "save": add_client,
-                "update": update_client,
-                "delete": delete_client,
-            },
-        }
 
         # --- widok Zlecenia jako tabela ---
 
-        self.orders_view = self.create_table("orders", get_orders(), ORDERS_HEADERS)
-        self.trucks_view = self.create_table("trucks", get_trucks(), TRUCKS_HEADERS)
-        self.drivers_view = self.create_table("drivers", get_drivers(), DRIVERS_HEADERS)
-        self.clients_view = self.create_table("clients", get_clients(), CLIENTS_HEADERS)
+        self.orders_view = self.create_table("orders", TABLES["orders"]["load"](), ORDERS_HEADERS)
+        self.trucks_view = self.create_table("trucks", TABLES["trucks"]["load"](), TRUCKS_HEADERS)
+        self.drivers_view = self.create_table("drivers", TABLES["drivers"]["load"](), DRIVERS_HEADERS)
+        self.clients_view = self.create_table("clients", TABLES["clients"]["load"](), CLIENTS_HEADERS)
 
         # dodajemy tabele do QStackedWidget
 
@@ -140,8 +101,8 @@ class MainWindow(QMainWindow):
         if dialog.exec():
                 dialog_data = dialog.get_data()
                 try:
-                    self.tables[name]["save"](*dialog_data)
-                    self.models[name].set_data(self.tables[name]["load"]())
+                    TABLES[name]["save"](*dialog_data)
+                    self.models[name].set_data(TABLES[name]["load"]())
                 except sqlite3.IntegrityError as e:
                     QMessageBox.warning(self, "Błąd zapisu", str(e))
 
@@ -149,8 +110,8 @@ class MainWindow(QMainWindow):
         dialog = AddOrderDialog(self)
         if dialog.exec():
             try:
-                self.tables[name]["save"](dialog.get_data())
-                self.models[name].set_data(self.tables[name]["load"]())
+                TABLES[name]["save"](dialog.get_data())
+                self.models[name].set_data(TABLES[name]["load"]())
             except sqlite3.IntegrityError as e:
                 QMessageBox.warning(self, "Błąd zapisu", str(e))
 
@@ -164,14 +125,14 @@ class MainWindow(QMainWindow):
 
         dialog = AddRecordDialog(headers[1:], self)
         dialog.setWindowTitle("Edycja rekordu")
-        values = self.tables[name]["get"](current_row_id)
+        values = TABLES[name]["get"](current_row_id)
         if values:
             for field, value in zip(dialog.inputs, values):
                 field.setText(value)
         if dialog.exec():
             try:
-                self.tables[name]["update"](current_row_id, *dialog.get_data())
-                self.models[name].set_data(self.tables[name]["load"]()) 
+                TABLES[name]["update"](current_row_id, *dialog.get_data())
+                self.models[name].set_data(TABLES[name]["load"]()) 
             except sqlite3.IntegrityError as e:
                 QMessageBox.warning(self, "Błąd zapisu", str(e))
 
@@ -184,8 +145,8 @@ class MainWindow(QMainWindow):
         current_row_id = self.models[name].get_row_id(current_row)
         if QMessageBox.question(self, "Potwierdzenie", "Czy na pewno chcesz usunąć pozycję?") == QMessageBox.StandardButton.Yes:
             try:
-                self.tables[name]["delete"](current_row_id)
-                self.models[name].set_data(self.tables[name]["load"]()) 
+                TABLES[name]["delete"](current_row_id)
+                self.models[name].set_data(TABLES[name]["load"]()) 
             except sqlite3.IntegrityError as e:
                 QMessageBox.warning(self, "Błąd zapisu", str(e))
 
@@ -198,7 +159,7 @@ class MainWindow(QMainWindow):
         order_id = self.models[name].get_row_id(current_row)
         dialog = AddOrderDialog(self, with_default_stops=False)
         dialog.setWindowTitle("Edycja zlecenia")
-        order_number, client_id, driver_id, truck_id, rate, status = self.tables[name]["get"](order_id)
+        order_number, client_id, driver_id, truck_id, rate, status = TABLES[name]["get"](order_id)
         dialog.order_number.setText(order_number)
         dialog.rate.setText(str(rate))
         dialog.status.setCurrentText(status)
@@ -219,7 +180,7 @@ class MainWindow(QMainWindow):
 
         if dialog.exec():
             try:
-                self.tables[name]["update"](order_id, dialog.get_data())
-                self.models[name].set_data(self.tables[name]["load"]())
+                TABLES[name]["update"](order_id, dialog.get_data())
+                self.models[name].set_data(TABLES[name]["load"]())
             except sqlite3.IntegrityError as e:
                 QMessageBox.warning(self, "Błąd zapisu", str(e))

@@ -173,8 +173,6 @@ class AddOrderDialog(QDialog):
 
         box.setMaximumWidth(220)
 
-        print(box.sizeHint().width())
-
         if stop_type == "load":
             self.loads_layout.addWidget(box)
         else:
