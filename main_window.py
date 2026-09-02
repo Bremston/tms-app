@@ -2,9 +2,9 @@ import sqlite3
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QListWidget, QStackedWidget, QTableView, QHeaderView,
-    QPushButton, QMessageBox,
+    QPushButton, QMessageBox, QLineEdit
 )
-from PySide6.QtCore import Qt, QDate
+from PySide6.QtCore import Qt, QDate, QSortFilterProxyModel
 
 from models import TableModel
 from dialogs import AddOrderDialog, AddRecordDialog
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
 
         self.models = {}
         self.views_dict = {}
+        self.proxies = {}
 
         # --- widok Zlecenia jako tabela ---
 
@@ -58,21 +59,35 @@ class MainWindow(QMainWindow):
     def create_table(self, name, data, headers):
         view = QTableView()
         model = TableModel(data, headers)
-        view.setModel(model)
         header = view.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
 
-        view.setColumnHidden(0, True)
 
         view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
 
         self.models[name] = model
         self.views_dict[name] = view
 
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        view.setModel(proxy)
+        view.setSortingEnabled(True)
+
+        self.proxies[name] = proxy
+
         page = QWidget()
         page_layout = QVBoxLayout(page)
+        interface_layout = QHBoxLayout()
 
         button = QPushButton("Dodaj")
+        view.setColumnHidden(0, True)
+
+        search_bar = QLineEdit()
+
+        search_bar.textChanged.connect(proxy.setFilterFixedString)
+        proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        proxy.setFilterKeyColumn(-1)
+
         if name == "orders":
             button.clicked.connect(lambda: self.add_order(name))
         else:
@@ -87,9 +102,13 @@ class MainWindow(QMainWindow):
         delete_button = QPushButton("Usuń")
         delete_button.clicked.connect(lambda: self.delete_record(name))
 
-        page_layout.addWidget(button)
-        page_layout.addWidget(edit_button)
-        page_layout.addWidget(delete_button)
+        page_layout.addLayout(interface_layout)
+        interface_layout.addWidget(button)
+        interface_layout.addWidget(edit_button)
+        interface_layout.addWidget(delete_button)
+        interface_layout.addStretch()
+        interface_layout.addWidget(search_bar)
+        # page_layout.addWidget(interface)
         page_layout.addWidget(view)
 
         view.setAlternatingRowColors(True)
@@ -120,7 +139,7 @@ class MainWindow(QMainWindow):
         if not index.isValid():
             QMessageBox.information(self, "Brak zaznaczenia", "Zaznacz wiersz do edycji")
             return
-        current_row = index.row()
+        current_row = self.proxies[name].mapToSource(index).row()
         current_row_id = self.models[name].get_row_id(current_row)
 
         dialog = AddRecordDialog(headers[1:], self)
@@ -141,7 +160,7 @@ class MainWindow(QMainWindow):
         if not index.isValid():
             QMessageBox.information(self, "Brak zaznaczenia", "Zaznacz wiersz do usunięcia")
             return
-        current_row = index.row()
+        current_row = self.proxies[name].mapToSource(index).row()
         current_row_id = self.models[name].get_row_id(current_row)
         if QMessageBox.question(self, "Potwierdzenie", "Czy na pewno chcesz usunąć pozycję?") == QMessageBox.StandardButton.Yes:
             try:
@@ -155,7 +174,7 @@ class MainWindow(QMainWindow):
         if not index.isValid():
             QMessageBox.information(self, "Brak zaznaczenia", "Zaznacz wiersz do edycji")
             return
-        current_row = index.row()
+        current_row = self.proxies[name].mapToSource(index).row()
         order_id = self.models[name].get_row_id(current_row)
         dialog = AddOrderDialog(self, with_default_stops=False)
         dialog.setWindowTitle("Edycja zlecenia")
