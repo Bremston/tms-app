@@ -42,6 +42,41 @@ class AddRecordDialog(QDialog):
             return 
         super().accept()
 
+class DriverDialog(QDialog):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle("Nowy kierowca")
+
+        layout = QFormLayout(self)
+
+        self.full_name = QLineEdit()
+        self.license_number = QLineEdit()
+        self.phone = QLineEdit()
+
+        layout.addRow("Imię i nazwisko", self.full_name)
+        layout.addRow("Numer prawa jazdy", self.license_number)
+        layout.addRow("Numer telefonu", self.phone)
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    def accept(self):
+        if not self.full_name.text().strip():
+            QMessageBox.warning(self, "Brak danych", "Podaj imię i nazwisko kierowcy.")
+            return
+        if not self.license_number.text().strip():
+            QMessageBox.warning(self, "Brak danych", "Podaj numer prawa jazdy.")
+            return
+        if not self.phone.text().strip():
+            QMessageBox.warning(self, "Brak danych", "Podaj numer telefonu.")
+            return
+        super().accept()
+
+
+
 class AddOrderDialog(QDialog):
     def __init__(self, parent = None, with_default_stops = True):
         super().__init__(parent)
@@ -183,9 +218,13 @@ class AddOrderDialog(QDialog):
             QMessageBox.warning(self, "Brak danych", "Wpisz numer zlecenia.")
             return
         try:
-            float(self.rate.text().replace(",", "."))
+            
+            rate = float(self.rate.text().replace(",", "."))
         except ValueError:
             QMessageBox.warning(self, "Błędna stawka", "Podaj stawkę jako liczbę.")
+            return
+        if rate < 0:
+            QMessageBox.warning(self, "Błędna stawka", "Stawka nie może być ujemna.")
             return
         counters = {"load" : 0, "unload" : 0}
         for stop in self.stops:

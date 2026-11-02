@@ -1,4 +1,5 @@
 import sqlite3
+from entities import Driver
 
 DB_PATH = "tms.db"
 
@@ -28,8 +29,16 @@ def get_db_data(query, params = ()):
     return [list(row) for row in rows]
 
 def get_driver(driver_id):
-    rows = get_db_data("SELECT full_name, license_number, phone FROM drivers WHERE id = ?", (driver_id,))
-    return rows[0] if rows else None
+    rows = get_db_data("SELECT id, full_name, license_number, phone FROM drivers WHERE id = ?", (driver_id,))
+    if not rows:
+        return None
+    row = rows[0]
+    return Driver(
+        id = row[0],
+        full_name=row[1],
+        license_number=row[2],
+        phone=row[3]
+        )
     
 def get_drivers():
     return get_db_data("SELECT id, full_name, license_number, phone FROM drivers")

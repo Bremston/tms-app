@@ -7,10 +7,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QDate, QSortFilterProxyModel
 
 from models import TableModel
-from dialogs import AddOrderDialog, AddRecordDialog
+from dialogs import AddOrderDialog, AddRecordDialog, DriverDialog
 from config import TABLES
 
-from database import ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS, CLIENTS_HEADERS, get_stops_for_order
+from database import ORDERS_HEADERS, TRUCKS_HEADERS, DRIVERS_HEADERS, CLIENTS_HEADERS, get_stops_for_order, get_driver
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -96,6 +96,8 @@ class MainWindow(QMainWindow):
         edit_button = QPushButton("Edytuj")
         if name == "orders":
             edit_button.clicked.connect(lambda: self.edit_order(name))
+        elif name == "drivers":
+            edit_button.clicked.connect(lambda: self.edit_driver(name))
         else:
             edit_button.clicked.connect(lambda: self.edit_record(name, headers))
 
@@ -116,7 +118,7 @@ class MainWindow(QMainWindow):
         return page
 
     def add_record(self, name, headers):
-        dialog = AddRecordDialog(headers[1:], self)
+        dialog = AddRecordDialog(headers[1:], parent = self)
         if dialog.exec():
                 dialog_data = dialog.get_data()
                 try:
@@ -142,7 +144,7 @@ class MainWindow(QMainWindow):
         current_row = self.proxies[name].mapToSource(index).row()
         current_row_id = self.models[name].get_row_id(current_row)
 
-        dialog = AddRecordDialog(headers[1:], self)
+        dialog = AddRecordDialog(headers[1:], parent = self)
         dialog.setWindowTitle("Edycja rekordu")
         values = TABLES[name]["get"](current_row_id)
         if values:
@@ -154,6 +156,42 @@ class MainWindow(QMainWindow):
                 self.models[name].set_data(TABLES[name]["load"]()) 
             except sqlite3.IntegrityError as e:
                 QMessageBox.warning(self, "Błąd zapisu", str(e))
+
+    def edit_driver(self, name):
+        index = self.views_dict[name].currentIndex()
+        if not index.isValid():
+            QMessageBox.information(self, "Brak zaznaczenia", "Zaznacz wiersz do edycji")
+            return
+        current_row = self.proxies[name].mapToSource(index).row()
+        driver_id = self.models[name].get_row_id(current_row)
+
+        dialog = DriverDialog(parent = self)
+        dialog.setWindowTitle("Edycja kierowcy")
+        driver = get_driver(driver_id)
+        if driver is None:
+            return
+         
+        dialog.full_name.setText(driver.full_name)
+        dialog.license_number.setText(driver.license_number or "")
+        dialog.phone.setText(driver.phone or "")
+
+        if dialog.exec():
+            driver.full_name = dialog.full_name.text()
+            driver.license_number = dialog.license_number.text()
+            driver.phone = dialog.phone.text()
+
+            try:
+                TABLES[name]["update"](
+                    driver.id,
+                    driver.full_name,
+                    driver.license_number,
+                    driver.phone
+                )
+                self.models[name].set_data(TABLES[name]["load"]())
+            except sqlite3.IntegrityError as e:
+                QMessageBox.warning(self, "Błąd zapisu", str(e))
+
+
 
     def delete_record(self, name):
         index = self.views_dict[name].currentIndex()
